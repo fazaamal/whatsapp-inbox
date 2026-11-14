@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // One-time setup on a Mac. Safe to re-run; it skips what's already done.
-//   1. checks claude, ffmpeg and whisper-cli (installs the last two with brew)
+//   1. checks claude and whisper-cli (installs whisper-cpp with brew; audio is converted with macOS's afconvert)
 //   2. downloads the speech-to-text model for voice notes
 //   3. checks Claude Code can reach Notion
 //   4. links WhatsApp (QR code)
@@ -30,7 +30,7 @@ if (!cfg.claudeBin) {
   process.exit(1);
 }
 console.log(`claude: ${cfg.claudeBin}`);
-const missing = ['ffmpeg', 'whisper-cli'].filter((bin) => !findOnPath(bin));
+const missing = ['whisper-cli'].filter((bin) => !findOnPath(bin));
 if (missing.length) {
   const brew = findOnPath('brew');
   if (!brew) {
@@ -41,7 +41,7 @@ if (missing.length) {
   console.log(`Installing ${formulae.join(', ')} with Homebrew...`);
   execFileSync(brew, ['install', ...formulae], { stdio: 'inherit' });
 } else {
-  console.log('ffmpeg and whisper-cli found.');
+  console.log('whisper-cli found.');
 }
 
 step(2, 'Speech-to-text model for voice notes');

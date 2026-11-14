@@ -65,7 +65,7 @@ npm run setup
 
 `npm run setup` walks through six steps and is safe to re-run (it skips what's done):
 
-1. installs `ffmpeg` and `whisper-cpp` with Homebrew if missing
+1. installs `whisper-cpp` with Homebrew if missing (voice notes are converted with macOS's built-in `afconvert`; `ffmpeg` is only a fallback)
 2. downloads the speech-to-text model for voice notes (`ggml-small.bin`, ~466 MB,
    from Hugging Face) to `~/.whatsapp-inbox/models`
 3. checks Claude Code can reach Notion (if not, it prints the commands from step 4 above)

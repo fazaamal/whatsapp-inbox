@@ -65,7 +65,22 @@ export function buildPrompt(item, cfg, context = {}) {
 export function runClaude(prompt, cfg, logger) {
   if (!cfg.claudeBin) return Promise.reject(new Error('claude CLI not found; set "claudeBin" in ~/.whatsapp-inbox/config.json'));
   const allowed = [...cfg.allowedTools, `Bash(node ${paths.uploadHelper}:*)`];
-  const args = ['-p', prompt, '--output-format', 'json', '--allowedTools', allowed.join(','), '--add-dir', paths.media];
+  // Built-in tools Claude may see at all; Bash is there only for the upload helper.
+  const builtins = [...new Set([...cfg.allowedTools.filter((t) => !t.startsWith('mcp__')).map((t) => t.replace(/\(.*$/, '')), 'Bash'])];
+  const mcpConfig = JSON.stringify({ mcpServers: { notion: { type: 'http', url: cfg.notionMcpUrl } } });
+  const args = [
+    '-p', prompt,
+    '--output-format', 'json',
+    // Deny anything not allowed below, even if your own Claude settings default
+    // to bypassing permissions (message content is untrusted).
+    '--permission-mode', 'dontAsk',
+    '--tools', builtins.join(','),
+    '--allowedTools', allowed.join(','),
+    // Only the Notion MCP: your other MCP servers slow startup and can keep
+    // the process alive after it has answered.
+    '--strict-mcp-config', '--mcp-config', mcpConfig,
+    '--add-dir', paths.media,
+  ];
   if (cfg.model) args.push('--model', cfg.model);
 
   return new Promise((resolve, reject) => {

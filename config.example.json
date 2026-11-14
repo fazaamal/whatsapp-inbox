@@ -8,6 +8,7 @@
   "claudeBin": null,
   "claudeTimeoutMinutes": 10,
   "concurrency": 1,
+  "notionMcpUrl": "https://mcp.notion.com/mcp",
   "whisperModel": "~/.whatsapp-inbox/models/ggml-small.bin",
   "whisperLanguage": "auto",
   "historyItems": 8,
