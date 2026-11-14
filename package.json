@@ -13,7 +13,9 @@
     "service:uninstall": "node scripts/service.mjs uninstall",
     "restart": "node scripts/service.mjs restart",
     "status": "node scripts/service.mjs status",
-    "logs": "node scripts/service.mjs logs"
+    "logs": "node scripts/service.mjs logs",
+    "skill:install": "node scripts/skill.mjs install",
+    "skill:uninstall": "node scripts/skill.mjs uninstall"
   },
   "keywords": [],
   "author": "",

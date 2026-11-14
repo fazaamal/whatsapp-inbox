@@ -22,9 +22,39 @@ WhatsApp self-chat ──► bot on your Mac (Baileys, linked device)
 
 Only your own self-chat is read. Every other chat is ignored.
 
-## Setup (once per Mac)
+There are two parts, and you can install either:
 
-Needs: Node 20+, [Claude Code](https://code.claude.com) signed in, Homebrew.
+| Part | What it does | Install |
+|---|---|---|
+| **The bot** | Watches your WhatsApp self-chat and files messages in Notion | [Full install](#full-install-bot--skill), once per Mac that should run it |
+| **The skill** | Lets any Claude Code session read the inbox ("what did I dump about Warq?") | Included in the full install, or [skill only](#skill-only) on any other Mac |
+
+Run the bot on **one** Mac only. An always-on one (like a Mac mini) is best,
+because the bot only works while that Mac is awake.
+
+## Installation
+
+### Before you start
+
+You need, on the Mac:
+
+1. **macOS** with [Homebrew](https://brew.sh).
+2. **Node.js 20 or newer**: `node -v` to check. Install with `brew install node` or nvm.
+3. **Claude Code**, installed and signed in: `claude --version` should work, and
+   running `claude` once should not ask you to log in. See
+   [code.claude.com](https://code.claude.com).
+4. **Notion connected to Claude Code** (both the bot and the skill use it):
+
+   ```bash
+   claude mcp add --scope user --transport http notion https://mcp.notion.com/mcp
+   ```
+
+   Then run `claude`, type `/mcp`, pick **notion** and sign in with the Notion
+   account that has the WhatsApp Inbox database. `claude mcp list` should now show
+   `notion … ✔ Connected`.
+5. **Your phone** with WhatsApp, for scanning a QR code once (bot only).
+
+### Full install (bot + skill)
 
 ```bash
 git clone https://github.com/fazaamal/whatsapp-inbox.git ~/Projects/whatsapp-inbox
@@ -33,14 +63,98 @@ npm install
 npm run setup
 ```
 
-`npm run setup` is safe to re-run. It:
+`npm run setup` walks through six steps and is safe to re-run (it skips what's done):
 
 1. installs `ffmpeg` and `whisper-cpp` with Homebrew if missing
-2. downloads the speech-to-text model (`ggml-small.bin`, ~466 MB) to `~/.whatsapp-inbox/models`
-3. checks Claude Code can reach Notion (if not, it prints the two commands to connect it)
-4. shows a QR code: on your phone, **WhatsApp → Settings → Linked devices → Link a device**
-5. installs a launchd service, so the bot starts at login and restarts if it crashes
-6. links the `whatsapp-inbox` Claude skill into `~/.claude/skills` (see below)
+2. downloads the speech-to-text model for voice notes (`ggml-small.bin`, ~466 MB,
+   from Hugging Face) to `~/.whatsapp-inbox/models`
+3. checks Claude Code can reach Notion (if not, it prints the commands from step 4 above)
+4. shows a QR code. On your phone: **WhatsApp → Settings → Linked devices → Link a
+   device**, then scan it. "WhatsApp Inbox" appears in your linked devices.
+5. installs a background service (launchd) so the bot starts at login and restarts
+   if it crashes
+6. links the `whatsapp-inbox` skill into `~/.claude/skills`
+
+**Check it works:**
+
+```bash
+npm run status       # should say: state: running
+```
+
+Then send "hello, test" to your own WhatsApp chat ("Message yourself"). Within a
+minute you should get ⏳ then ✅ on it, and a page in the WhatsApp Inbox. Send
+`/status` to the same chat for a health check.
+
+### Skill only
+
+For a Mac where you want to *read* the inbox from Claude Code but not run the bot:
+
+```bash
+git clone https://github.com/fazaamal/whatsapp-inbox.git ~/Projects/whatsapp-inbox
+cd ~/Projects/whatsapp-inbox
+npm run skill:install
+```
+
+No `npm install` needed. This links `skills/whatsapp-inbox` into
+`~/.claude/skills/whatsapp-inbox`, so `git pull` keeps it up to date. If you'd
+rather not keep the repo around, `node scripts/skill.mjs copy` copies it instead.
+
+You still need Claude Code and Notion connected ([before you start](#before-you-start),
+items 3–4). Start a **new** Claude Code session and ask "what's in my inbox?".
+
+Without the repo at all, copy the one file by hand:
+
+```bash
+mkdir -p ~/.claude/skills/whatsapp-inbox
+curl -fsSL -H "Authorization: token $(gh auth token)" \
+  https://raw.githubusercontent.com/fazaamal/whatsapp-inbox/main/skills/whatsapp-inbox/SKILL.md \
+  -o ~/.claude/skills/whatsapp-inbox/SKILL.md
+```
+
+(The repo is private, hence the GitHub token; this needs `gh auth login` first.)
+
+### Using a different Notion workspace
+
+The database IDs are already set for Faza's workspace. To start fresh somewhere
+else, ask Claude Code (with Notion connected) to create it:
+
+> Create a Notion database called "WhatsApp Inbox" with: Name (title), Project
+> (select: Warq, Zamrud, Zaman, BuildWithFaza, Minaarah, Masters, Surau Al-Iman,
+> Personal, Other), Type (select: Idea, Link, Image, Voice note, Video, File,
+> Request), Status (select: New, Reviewed, Done), Summary (text), Link (url),
+> Tags (multi-select), Received (date), Message ID (text). Give me its URL and
+> its collection:// data source URL.
+
+Then put the two URLs in `~/.whatsapp-inbox/config.json` (`notionDatabaseUrl`,
+`notionDataSource`) and `npm run restart`. For the skill, replace the two IDs at
+the top of [`skills/whatsapp-inbox/SKILL.md`](skills/whatsapp-inbox/SKILL.md).
+
+### Updating
+
+```bash
+cd ~/Projects/whatsapp-inbox
+git pull
+npm install
+npm run restart      # bot only; the linked skill updates with git pull
+```
+
+### Moving the bot to another Mac
+
+On the old Mac: `npm run service:uninstall`, then in WhatsApp remove the "WhatsApp
+Inbox" linked device. On the new Mac: do the [full install](#full-install-bot--skill).
+The Notion inbox stays as it is.
+
+### Uninstalling
+
+```bash
+cd ~/Projects/whatsapp-inbox
+npm run service:uninstall     # stop the bot and remove the background service
+npm run skill:uninstall       # remove the skill from Claude Code
+rm -rf ~/.whatsapp-inbox      # WhatsApp login, downloaded media, model, logs
+```
+
+Then remove "WhatsApp Inbox" from **WhatsApp → Settings → Linked devices**. The
+Notion database is left alone; delete it in Notion if you want.
 
 ## Using it
 
@@ -64,8 +178,9 @@ or offline is picked up when it wakes.
 
 ## Reading the inbox from Claude Code
 
-The repo includes a Claude skill, [`skills/whatsapp-inbox`](skills/whatsapp-inbox/SKILL.md),
-which setup links into `~/.claude/skills`. In any Claude Code session you can ask:
+The repo includes a Claude skill, [`skills/whatsapp-inbox`](skills/whatsapp-inbox/SKILL.md)
+(installed by `npm run setup`, or on its own with [`npm run skill:install`](#skill-only)).
+In any Claude Code session you can ask:
 
 - "what's in my inbox?" (unread counts per project, then the newest items)
 - "what did I dump about Warq this week?" / "anything in my inbox for this project?"

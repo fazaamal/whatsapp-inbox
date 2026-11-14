@@ -8,7 +8,6 @@
 //   6. links the whatsapp-inbox skill into Claude Code (~/.claude/skills)
 import fs from 'node:fs';
 import path from 'node:path';
-import os from 'node:os';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { REPO_DIR, findOnPath, loadConfig, paths } from '../src/config.js';
 
@@ -98,12 +97,7 @@ step(5, 'Installing the background service');
 spawnSync(process.execPath, [path.join(REPO_DIR, 'scripts', 'service.mjs'), 'install'], { stdio: 'inherit' });
 
 step(6, 'Linking the whatsapp-inbox skill into Claude Code');
-const skillsDir = path.join(os.homedir(), '.claude', 'skills');
-const skillLink = path.join(skillsDir, 'whatsapp-inbox');
-fs.mkdirSync(skillsDir, { recursive: true });
-fs.rmSync(skillLink, { force: true, recursive: false });
-fs.symlinkSync(path.join(REPO_DIR, 'skills', 'whatsapp-inbox'), skillLink);
-console.log(`${skillLink} -> skills/whatsapp-inbox (ask any Claude Code session "what's in my inbox?")`);
+spawnSync(process.execPath, [path.join(REPO_DIR, 'scripts', 'skill.mjs'), 'install'], { stdio: 'inherit' });
 
 console.log(`
 All set. Send anything to your own WhatsApp chat ("Message yourself").
