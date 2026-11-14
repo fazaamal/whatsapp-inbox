@@ -5,8 +5,10 @@
 //   3. checks Claude Code can reach Notion
 //   4. links WhatsApp (QR code)
 //   5. installs the background service so it keeps running
+//   6. links the whatsapp-inbox skill into Claude Code (~/.claude/skills)
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { REPO_DIR, findOnPath, loadConfig, paths } from '../src/config.js';
 
@@ -20,7 +22,7 @@ const isLinked = () => {
 };
 
 const MODEL_URL = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin';
-const step = (n, text) => console.log(`\n[${n}/5] ${text}`);
+const step = (n, text) => console.log(`\n[${n}/6] ${text}`);
 const cfg = loadConfig();
 
 step(1, 'Checking tools');
@@ -94,6 +96,14 @@ if (isLinked()) {
 
 step(5, 'Installing the background service');
 spawnSync(process.execPath, [path.join(REPO_DIR, 'scripts', 'service.mjs'), 'install'], { stdio: 'inherit' });
+
+step(6, 'Linking the whatsapp-inbox skill into Claude Code');
+const skillsDir = path.join(os.homedir(), '.claude', 'skills');
+const skillLink = path.join(skillsDir, 'whatsapp-inbox');
+fs.mkdirSync(skillsDir, { recursive: true });
+fs.rmSync(skillLink, { force: true, recursive: false });
+fs.symlinkSync(path.join(REPO_DIR, 'skills', 'whatsapp-inbox'), skillLink);
+console.log(`${skillLink} -> skills/whatsapp-inbox (ask any Claude Code session "what's in my inbox?")`);
 
 console.log(`
 All set. Send anything to your own WhatsApp chat ("Message yourself").

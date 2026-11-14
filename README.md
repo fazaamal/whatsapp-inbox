@@ -40,6 +40,7 @@ npm run setup
 3. checks Claude Code can reach Notion (if not, it prints the two commands to connect it)
 4. shows a QR code: on your phone, **WhatsApp → Settings → Linked devices → Link a device**
 5. installs a launchd service, so the bot starts at login and restarts if it crashes
+6. links the `whatsapp-inbox` Claude skill into `~/.claude/skills` (see below)
 
 ## Using it
 
@@ -60,6 +61,20 @@ filed as their own page *and* added to the original page under "Follow-up".
 
 The Mac has to be awake for the bot to work. Anything you send while it's asleep
 or offline is picked up when it wakes.
+
+## Reading the inbox from Claude Code
+
+The repo includes a Claude skill, [`skills/whatsapp-inbox`](skills/whatsapp-inbox/SKILL.md),
+which setup links into `~/.claude/skills`. In any Claude Code session you can ask:
+
+- "what's in my inbox?" (unread counts per project, then the newest items)
+- "what did I dump about Warq this week?" / "anything in my inbox for this project?"
+- "find the voice note where I talked about pricing"
+- "summarise my dumps from the last few days"
+- "mark those as reviewed"
+
+It reads the same Notion database the bot writes to. It only changes an item's
+Status when you ask, and never deletes anything.
 
 ## Day to day
 
