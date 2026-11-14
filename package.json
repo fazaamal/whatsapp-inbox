@@ -1,0 +1,28 @@
+{
+  "name": "whatsapp-inbox",
+  "version": "1.0.0",
+  "description": "Dump ideas, links, images and voice notes into Notion by messaging yourself on WhatsApp; Claude files them and answers requests.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "setup": "node scripts/setup.mjs",
+    "login": "node src/index.js --login",
+    "start": "node src/index.js",
+    "simulate": "node scripts/simulate.mjs",
+    "service:install": "node scripts/service.mjs install",
+    "service:uninstall": "node scripts/service.mjs uninstall",
+    "restart": "node scripts/service.mjs restart",
+    "status": "node scripts/service.mjs status",
+    "logs": "node scripts/service.mjs logs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "private": "true",
+  "dependencies": {
+    "baileys": "^7.0.0-rc14",
+    "pino": "^10.4.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
