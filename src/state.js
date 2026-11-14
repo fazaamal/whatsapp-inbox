@@ -16,6 +16,7 @@ export function loadState() {
   state.processed ||= [];
   state.failed ||= [];
   state.sentByBot ||= [];
+  state.history ||= [];
   return state;
 }
 
@@ -65,3 +66,36 @@ export function rememberSent(id) {
 }
 
 export const isSentByBot = (id) => loadState().sentByBot.includes(id);
+
+// A short memory of recent messages, so a follow-up like "summarise that"
+// knows what "that" is. Each Claude run is otherwise a fresh session.
+const clip = (s, n) => (s && s.length > n ? s.slice(0, n) + '…' : s || null);
+
+export function addHistory(item, result) {
+  const s = loadState();
+  s.history = s.history.filter((h) => h.id !== item.id);
+  s.history.push({
+    id: item.id,
+    at: item.receivedIso,
+    kind: item.kind,
+    text: clip(item.text, 500),
+    transcript: clip(item.transcript, 800),
+    url: item.url || null,
+    file: item.file || null,
+    title: result?.title || null,
+    project: result?.project || null,
+    pageUrl: result?.pageUrl || null,
+    reply: clip(result?.reply, 500),
+  });
+  if (s.history.length > 50) s.history = s.history.slice(-50);
+  save();
+}
+
+export function recentHistory({ maxItems, windowHours, excludeId }) {
+  const since = Date.now() - windowHours * 3_600_000;
+  return loadState()
+    .history.filter((h) => h.id !== excludeId && Date.parse(h.at) >= since)
+    .slice(-maxItems);
+}
+
+export const findInHistory = (id) => loadState().history.find((h) => h.id === id) || null;

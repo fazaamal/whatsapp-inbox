@@ -6,7 +6,19 @@ import fs from 'node:fs';
 import { spawn } from 'node:child_process';
 import { paths } from './config.js';
 
-export function buildPrompt(item, cfg) {
+function describeEarlier(h) {
+  const parts = [`[${h.at}] ${h.kind}`];
+  if (h.title) parts.push(`filed as "${h.title}"${h.project ? ` (${h.project})` : ''}`);
+  if (h.pageUrl) parts.push(`page: ${h.pageUrl}`);
+  if (h.text) parts.push(`text: ${JSON.stringify(h.text)}`);
+  if (h.transcript) parts.push(`transcript: ${JSON.stringify(h.transcript)}`);
+  if (h.url) parts.push(`link: ${h.url}`);
+  if (h.file) parts.push(`file: ${h.file}`);
+  if (h.reply) parts.push(`you replied: ${JSON.stringify(h.reply)}`);
+  return parts.join(' | ');
+}
+
+export function buildPrompt(item, cfg, context = {}) {
   const lines = [
     'A new message arrived in my WhatsApp self-chat. Handle it as agent/CLAUDE.md describes.',
     '',
@@ -26,6 +38,18 @@ export function buildPrompt(item, cfg) {
         ? `- Voice note transcript (automatic, may have mistakes):\n"""\n${item.transcript}\n"""`
         : '- Voice note: transcription unavailable; file it with the audio attached.',
     );
+  }
+  if (item.replyToId) {
+    lines.push('', 'This message is a WhatsApp reply to an earlier message:');
+    lines.push(
+      context.repliedTo
+        ? `- ${describeEarlier(context.repliedTo)}`
+        : `- (not in recent history) ${item.quotedText ? `its text: ${JSON.stringify(item.quotedText)}` : `a ${item.quotedKind || 'message'} with no text`}`,
+    );
+  }
+  if (context.recent?.length) {
+    lines.push('', 'Recent earlier messages in this chat (oldest first), for context only. Do not file these again:');
+    for (const h of context.recent) lines.push(`- ${describeEarlier(h)}`);
   }
   lines.push(
     '',

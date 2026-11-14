@@ -52,6 +52,12 @@ npm run setup
 
 Commands (send in the self-chat): `/status`, `/retry`.
 
+**Follow-ups work.** The bot remembers the last 8 messages from the past 6
+hours, so you can send a link and then "summarise that". To point at a
+specific older message, swipe-reply to it in WhatsApp. Follow-up answers are
+filed as their own page *and* added to the original page under "Follow-up".
+(Change the window with `historyItems` / `historyHours` in the config.)
+
 The Mac has to be awake for the bot to work. Anything you send while it's asleep
 or offline is picked up when it wakes.
 
@@ -63,6 +69,7 @@ npm run logs       # last log lines
 npm run restart    # restart the bot
 npm run simulate -- --text "test idea"          # run one fake message through Claude + Notion
 npm run simulate -- --file ~/Desktop/x.png --text "what is this?"
+npm run simulate -- --with-history --text "summarise that"   # use the recent-messages memory
 npm run service:uninstall                       # stop it and remove the service
 ```
 
@@ -82,7 +89,7 @@ npm run service:uninstall                       # stop it and remove the service
 |---|---|
 | `~/.whatsapp-inbox/auth/` | WhatsApp login. Private; never commit. Delete it to unlink. |
 | `~/.whatsapp-inbox/media/` | Downloaded images, voice notes, files |
-| `~/.whatsapp-inbox/state.json` | Which messages are done or failed |
+| `~/.whatsapp-inbox/state.json` | Which messages are done or failed, plus the recent-messages memory |
 | `~/.whatsapp-inbox/logs/` | Bot logs |
 | `~/Library/LaunchAgents/com.fazasophian.whatsapp-inbox.plist` | The background service |
 

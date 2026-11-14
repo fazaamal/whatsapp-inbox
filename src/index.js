@@ -109,6 +109,9 @@ async function handle(msg) {
       text: info.text,
       url: info.url,
       mime: info.mime,
+      replyToId: info.replyToId || null,
+      quotedText: info.quotedText || null,
+      quotedKind: info.quotedKind || null,
       receivedIso: new Date(messageTimestamp(msg) || Date.now()).toISOString(),
     };
     if (info.mediaType) item.file = await downloadMedia(msg, info, sock, waLogger);

@@ -9,6 +9,8 @@
   "claudeTimeoutMinutes": 10,
   "whisperModel": "~/.whatsapp-inbox/models/ggml-small.bin",
   "whisperLanguage": "auto",
+  "historyItems": 8,
+  "historyHours": 6,
   "replyPrefix": "🤖 ",
   "reactions": { "working": "⏳", "saved": "✅", "failed": "❌" }
 }
