@@ -15,11 +15,28 @@ import * as store from './state.js';
 const LOGIN = process.argv.includes('--login');
 const cfg = loadConfig();
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
-const waLogger = pino({ level: 'warn' }); // Baileys is very chatty at info
+const waLogger = pino({ level: process.env.WA_LOG_LEVEL || 'warn' }); // Baileys is very chatty at info
 const startedAt = Date.now();
 
 let sock = null;
-let queue = Promise.resolve();
+// Messages are worked on one at a time by default (so "summarise that" sees the
+// link before it), up to cfg.concurrency at once; the rest wait their turn
+// (they already have the ⏳ reaction, so you can see they arrived).
+let running = 0;
+const waiting = [];
+const inFlight = new Set();
+function runLimited(task) {
+  return new Promise((resolve) => {
+    waiting.push(async () => {
+      running++;
+      try { await task(); } catch (err) { logger.error({ err: err.message }, 'handler crashed'); }
+      running--;
+      resolve();
+      waiting.shift()?.();
+    });
+    if (running < (cfg.concurrency || 1)) waiting.shift()();
+  });
+}
 let reconnectDelay = 2000;
 
 async function connect() {
@@ -38,8 +55,9 @@ async function connect() {
   sock.ev.on('messages.upsert', ({ messages, type }) => {
     if (LOGIN || (type !== 'notify' && type !== 'append')) return;
     for (const msg of messages) {
+      logger.debug({ type, id: msg.key?.id, fromMe: msg.key?.fromMe, jid: msg.key?.remoteJid, alt: msg.key?.remoteJidAlt, me: [sock.user?.id, sock.user?.lid], hasMessage: !!msg.message }, 'upsert');
       if (!msg.key?.fromMe || !isSelfChat(msg.key)) continue;
-      queue = queue.then(() => handle(msg)).catch((err) => logger.error({ err: err.message }, 'handler crashed'));
+      handle(msg).catch((err) => logger.error({ err: err.message }, 'handler crashed'));
     }
   });
 }
@@ -92,7 +110,16 @@ async function handle(msg) {
   if (store.isProcessed(id) || store.isSentByBot(id)) return;
   if (messageTimestamp(msg) < (store.loadState().linkedSince || startedAt) - 60_000) return; // old history
 
+  // A message WhatsApp couldn't decrypt yet arrives empty; the readable copy
+  // comes later under the same id, so don't mark it done.
+  if (!msg.message) {
+    logger.warn({ id, stub: msg.messageStubType, why: msg.messageStubParameters }, 'message not readable yet, waiting for WhatsApp to resend it');
+    return;
+  }
+
   const info = describe(msg);
+  logger.info({ id, kind: info?.kind || null, keys: Object.keys(msg.message) }, 'message received');
+  logger.debug({ id, raw: JSON.stringify(msg.message).slice(0, 2000) }, 'raw message');
   if (!info) return store.markProcessed(id);
   if (info.text?.startsWith(cfg.replyPrefix.trim())) return store.markProcessed(id); // our own reply echoing back
 
@@ -100,7 +127,14 @@ async function handle(msg) {
   if (command === '/status') return replyStatus(msg);
   if (command === '/retry') return retryFailed(msg);
 
-  await react(msg.key, cfg.reactions.working);
+  if (inFlight.has(id)) return; // same message delivered twice
+  inFlight.add(id);
+  await react(msg.key, cfg.reactions.working); // instant "got it", before waiting for a slot
+  await runLimited(() => work(msg, info)).finally(() => inFlight.delete(id));
+}
+
+async function work(msg, info) {
+  const { id } = msg.key;
   let item = null;
   try {
     item = {

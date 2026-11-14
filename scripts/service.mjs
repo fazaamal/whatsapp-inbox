@@ -48,21 +48,38 @@ function install() {
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
   <key>ThrottleInterval</key><integer>30</integer>
-  <key>ProcessType</key><string>Background</string>
+  <!-- Not "Background": macOS throttles those so hard a Claude run takes minutes. -->
+  <key>ProcessType</key><string>Interactive</string>
   <key>StandardOutPath</key><string>${esc(OUT_LOG)}</string>
   <key>StandardErrorPath</key><string>${esc(ERR_LOG)}</string>
 </dict>
 </plist>
 `;
   fs.mkdirSync(path.dirname(PLIST), { recursive: true });
-  launchctl('bootout', `${DOMAIN}/${LABEL}`);
+  stop();
   fs.writeFileSync(PLIST, plist);
-  launchctl('bootstrap', DOMAIN, PLIST);
+  // bootstrap can fail right after a bootout while launchd is still tearing down; retry.
+  for (let i = 0; i < 10 && !launchctl('print', `${DOMAIN}/${LABEL}`); i++) {
+    launchctl('bootstrap', DOMAIN, PLIST);
+    if (!launchctl('print', `${DOMAIN}/${LABEL}`)) sleep(1000);
+  }
+  if (!launchctl('print', `${DOMAIN}/${LABEL}`)) {
+    console.error(`Could not start ${LABEL}. Try: launchctl bootstrap ${DOMAIN} ${PLIST}`);
+    process.exit(1);
+  }
   console.log(`Installed and started ${LABEL}. Logs: ${OUT_LOG}`);
 }
 
-function uninstall() {
+const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+// bootout returns before the job is gone; wait until launchd forgets it.
+function stop() {
   launchctl('bootout', `${DOMAIN}/${LABEL}`);
+  for (let i = 0; i < 20 && launchctl('print', `${DOMAIN}/${LABEL}`); i++) sleep(500);
+}
+
+function uninstall() {
+  stop();
   fs.rmSync(PLIST, { force: true });
   console.log(`Stopped and removed ${LABEL}.`);
 }
