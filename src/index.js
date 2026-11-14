@@ -154,6 +154,7 @@ async function work(msg, info) {
     logger.error({ err: err.message, id }, 'failed to file message');
     store.markFailed({ id, key: msg.key, item, error: err.message });
     await react(msg.key, cfg.reactions.failed);
+    await send(msg.key.remoteJid, { text: `${cfg.replyPrefix}Couldn't save this one (${err.message}). Send /retry to try again.` }, { quoted: msg });
   }
 }
 
@@ -161,7 +162,11 @@ async function finish(key, item, original = null) {
   const result = await processItem(item, cfg, logger);
   logger.info({ id: item.id, kind: item.kind, ...result }, 'processed');
   await react(key, result.saved ? cfg.reactions.saved : cfg.reactions.failed);
-  if (result.reply) await send(key.remoteJid, { text: cfg.replyPrefix + result.reply }, original ? { quoted: original } : undefined);
+  // Always answer, like a normal chat: what was done, and a link to the page.
+  let reply = result.reply;
+  if (!reply) reply = result.saved ? `Saved${result.project ? ` to ${result.project}` : ''}${result.title ? `: ${result.title}` : ''}.` : "Couldn't save this one. Send /retry to try again.";
+  const link = result.saved && result.pageUrl ? `\n${result.pageUrl.replace(/\?pvs=\d+$/, '')}` : '';
+  await send(key.remoteJid, { text: cfg.replyPrefix + reply + link }, original ? { quoted: original } : undefined);
   if (result.saved) store.markProcessed(item.id);
   else store.markFailed({ id: item.id, key, item, error: result.reply || 'not saved' });
 }

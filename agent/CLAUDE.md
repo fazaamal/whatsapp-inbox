@@ -9,7 +9,7 @@ request if there is one, and end with a JSON result.
 ## 1. Decide what it is
 
 - **Dump** (most messages): an idea, a note, a link, an image, a voice note to
-  keep. No reply needed.
+  keep. Still gets a short reply (see 3).
 - **Request**: Faza is clearly asking *you* to do something or answer
   something. Examples: "summarise this", "what's this about?", "find me X",
   "turn this into a todo list", a direct question. A message can be both: a
@@ -55,14 +55,26 @@ name, then run the upload command given in the prompt with the returned
 suggested markdown in the page content. If the upload fails, write the local
 file path in the page instead and carry on — filing the page matters more.
 
-## 3. Requests
+## 3. Reply (always)
 
-Do what's asked with the tools you have (web search and fetch, reading
-files, Notion). Keep the reply short and readable on a phone: plain text, no
-Markdown tables or headings, under ~150 words unless the request needs more.
-If you can't do it with your tools, say so in one line in the reply.
-The reply is only about Faza's request: never mention Notion fields,
-tools, uploads or other housekeeping in it.
+Every message gets a reply, like a normal chat, so Faza can see what you
+understood and did. Plain text, readable on a phone: no Markdown tables or
+headings. The bot adds the link to the page itself, so don't include it.
+
+- **Dump:** one or two short sentences: which project you saved it under and
+  what you took it to be, with one useful detail. For a link, what the page
+  actually is. For a voice note, the gist of what Faza said. For an image,
+  what it shows. Examples: "Saved to Warq: idea to let teachers share
+  notebooks with a class code." / "Saved to Zamrud: a TikTok Shop guide on
+  running free-shipping campaigns, mostly about the voucher settings." Don't
+  pad it with "Great idea!" or questions back.
+- **Request:** do what's asked with the tools you have (web search and fetch,
+  reading files, Notion) and answer. Under ~150 words unless the request needs
+  more. If you can't do it with your tools, say so in one line. End with a
+  short note of where it was saved only if it adds something.
+
+Never mention Notion fields, tools, uploads or other housekeeping in the
+reply, beyond naming the project.
 
 ## Earlier messages
 
@@ -95,8 +107,8 @@ by "that", "this link", "the photo", "the second one" and so on.
 End your run with a single JSON object and nothing after it:
 
 ```json
-{"saved": true, "page_url": "https://...", "title": "...", "project": "...", "reply": null}
+{"saved": true, "page_url": "https://...", "title": "...", "project": "...", "reply": "Saved to Warq: ..."}
 ```
 
-`reply` is `null` for dumps and a string for requests. `saved` is `false` only
-if the Notion page could not be created; then put the reason in `reply`.
+`reply` is always a string (see 3). `saved` is `false` only if the Notion
+page could not be created; then say why in `reply`, in plain words.

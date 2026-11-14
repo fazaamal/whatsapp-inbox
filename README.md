@@ -5,9 +5,9 @@ Message yourself on WhatsApp and it lands in Notion.
 Send anything to your own "Message yourself" chat: a thought, a link, a
 screenshot, a photo, a voice note, a file. A small bot on your Mac picks it up
 and hands it to Claude Code, which files it as a page in the **WhatsApp Inbox**
-Notion database, sorted by project. If the message asks for something
-("summarise this", "what's this?", a question), Claude also does it and replies
-in the same chat.
+Notion database, sorted by project, and replies in the same chat with what it
+saved and a link to the page. If the message asks for something ("summarise
+this", "what's this?", a question), Claude also does it and the reply is the answer.
 
 ```
 WhatsApp self-chat ──► bot on your Mac (Baileys, linked device)
@@ -17,7 +17,7 @@ WhatsApp self-chat ──► bot on your Mac (Baileys, linked device)
                           │  reads agent/CLAUDE.md, files the page via the Notion MCP,
                           │  uploads the image/audio, answers requests
                           ▼
-                       Notion: WhatsApp Inbox  ──► ✅ reaction (+ a 🤖 reply if you asked for something)
+                       Notion: WhatsApp Inbox  ──► ✅ reaction + a 🤖 reply (what was saved, or the answer)
 ```
 
 Only your own self-chat is read. Every other chat is ignored.
@@ -163,7 +163,7 @@ Notion database is left alone; delete it in Notion if you want.
 | ⏳ | Working on it |
 | ✅ | Filed in Notion |
 | ❌ | Failed. Send `/retry` to try the failed ones again |
-| 🤖 … | Claude's answer to a request |
+| 🤖 … | What was saved and where (with a link), or the answer to your request |
 
 Commands (send in the self-chat): `/status`, `/retry`.
 
