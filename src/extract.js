@@ -33,7 +33,7 @@ export function describe(msg) {
     const text = (content.conversation || content.extendedTextMessage?.text || '').trim();
     if (!text) return null;
     const url = text.match(URL_RE)?.[0] || null;
-    return { kind: url ? 'link' : 'text', text, url, mediaType: null, ...replyContext(content.extendedTextMessage) };
+    return { kind: url ? 'link' : 'text', text, url, mediaType: null, forwarded: !!content.extendedTextMessage?.contextInfo?.isForwarded, ...replyContext(content.extendedTextMessage) };
   }
 
   if (!(type in MEDIA_KINDS) || MEDIA_KINDS[type] === null) return null;
@@ -49,6 +49,7 @@ export function describe(msg) {
     mime: node.mimetype || null,
     fileName: node.fileName || null,
     isPtt: !!node.ptt,
+    forwarded: !!node.contextInfo?.isForwarded,
     ...replyContext(node),
   };
 }

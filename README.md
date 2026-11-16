@@ -210,9 +210,21 @@ npm run service:uninstall                       # stop it and remove the service
 - **Settings** (projects list, model, tools Claude may use, emoji): edit
   `~/.whatsapp-inbox/config.json` (created from [`config.example.json`](config.example.json)),
   then `npm run restart`.
-- Claude may only use: reading files, web search/fetch, the Notion MCP, and
+- **Full access for your own words.** A message you type or speak yourself
+  (text with no link, or a voice note, not forwarded) runs with full access:
+  every tool, the shell, your whole home folder, all your Claude Code MCP
+  servers and your Chrome (Claude in Chrome). So "what was I doing in my Claude
+  Code chats today?" or "what tabs do I have open?" just work. CLAUDE.md still
+  tells it to only do irreversible or outward-facing things (deleting, pushing,
+  sending, paying) when your message names that exact action.
+- **Locked down for everything else.** Links, images, videos, files and forwarded
+  messages carry someone else's words, which can hide instructions. Those runs
+  may only read files, search/fetch the web, use the Notion MCP, and run
   `bin/notion-upload.mjs` (which only uploads files from the bot's media folder
-  to Notion). Add tools in `allowedTools` if you want it to do more.
+  to Notion). Add tools in `allowedTools` to widen this.
+- Change it with `fullAccess` in `~/.whatsapp-inbox/config.json`:
+  `"own-messages"` (default), `"always"` (every message, links and media
+  included: anything a web page says could run on your Mac), or `"off"`.
 
 ## Where things live
 

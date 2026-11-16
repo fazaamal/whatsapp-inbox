@@ -143,6 +143,7 @@ async function work(msg, info) {
       text: info.text,
       url: info.url,
       mime: info.mime,
+      forwarded: info.forwarded || false,
       replyToId: info.replyToId || null,
       quotedText: info.quotedText || null,
       quotedKind: info.quotedKind || null,

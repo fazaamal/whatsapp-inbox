@@ -1,6 +1,6 @@
 // One message in, one Notion page (and maybe a reply) out. Used by the
 // WhatsApp bot and by `npm run simulate`.
-import { buildPrompt, runClaude } from './claude.js';
+import { buildPrompt, hasFullAccess, runClaude } from './claude.js';
 import { transcribe } from './transcribe.js';
 import { analyseVideo } from './video.js';
 import { addHistory, findInHistory, recentHistory } from './state.js';
@@ -22,13 +22,14 @@ export async function processItem(item, cfg, logger, { useHistory = true } = {})
         repliedTo: item.replyToId ? findInHistory(item.replyToId) : null,
       }
     : {};
-  const prompt = buildPrompt(item, cfg, context);
+  const fullAccess = hasFullAccess(item, cfg);
+  const prompt = buildPrompt(item, cfg, context, { fullAccess });
   let result;
   try {
-    result = await runClaude(prompt, cfg, logger);
+    result = await runClaude(prompt, cfg, logger, { fullAccess });
   } catch (err) {
     logger.warn({ err: err.message, id: item.id }, 'claude failed, retrying once');
-    result = await runClaude(prompt, cfg, logger);
+    result = await runClaude(prompt, cfg, logger, { fullAccess });
   }
   if (useHistory) addHistory(item, result);
   return result;

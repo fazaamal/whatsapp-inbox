@@ -3,6 +3,7 @@
 // an allowlist, a result out. The standing instructions live in
 // agent/CLAUDE.md, which Claude reads because it runs with agent/ as cwd.
 import fs from 'node:fs';
+import os from 'node:os';
 import { spawn } from 'node:child_process';
 import { paths } from './config.js';
 
@@ -19,7 +20,7 @@ function describeEarlier(h) {
   return parts.join(' | ');
 }
 
-export function buildPrompt(item, cfg, context = {}) {
+export function buildPrompt(item, cfg, context = {}, { fullAccess = false } = {}) {
   const lines = [
     'A new message arrived in my WhatsApp self-chat. Handle it as agent/CLAUDE.md describes.',
     '',
@@ -68,6 +69,9 @@ export function buildPrompt(item, cfg, context = {}) {
   }
   lines.push(
     '',
+    fullAccess
+      ? "Access: FULL. This message is Faza's own words, so you may use every tool on this Mac (shell, files anywhere in the home folder) to do what they ask, within the limits in CLAUDE.md."
+      : 'Access: LOCKED. You can only read, search the web and use Notion. If Faza asks for something that needs more (running commands, reading other projects), say it needs a message typed by Faza with no link or attachment.',
     `Notion data source: ${cfg.notionDataSource}`,
     `Projects to choose from: ${cfg.projects.join(', ')}`,
     `To upload a local file to Notion, run exactly: node ${paths.uploadHelper} --file <path> --url <upload_url> --headers '<upload_headers JSON>'`,
@@ -77,53 +81,84 @@ export function buildPrompt(item, cfg, context = {}) {
   return lines.join('\n');
 }
 
-export function runClaude(prompt, cfg, logger) {
+// Full access only for what Faza said themselves: typed text with no link, or
+// a voice note, not forwarded. Links, media and forwards bring in someone
+// else's words (a web page or image can hide instructions), so those stay
+// locked down. cfg.fullAccess: "own-messages" (default), "always" or "off".
+export function hasFullAccess(item, cfg) {
+  const mode = cfg.fullAccess || 'off';
+  if (mode === 'always') return true;
+  if (mode !== 'own-messages') return false;
+  return ['text', 'voice'].includes(item.kind) && !item.url && !item.forwarded;
+}
+
+export function runClaude(prompt, cfg, logger, { fullAccess = false } = {}) {
   if (!cfg.claudeBin) return Promise.reject(new Error('claude CLI not found; set "claudeBin" in ~/.whatsapp-inbox/config.json'));
-  const allowed = [...cfg.allowedTools, `Bash(node ${paths.uploadHelper}:*)`];
-  // Built-in tools Claude may see at all; Bash is there only for the upload helper.
-  const builtins = [...new Set([...cfg.allowedTools.filter((t) => !t.startsWith('mcp__')).map((t) => t.replace(/\(.*$/, '')), 'Bash'])];
+  const args = ['-p', prompt, '--output-format', 'json'];
+  if (fullAccess) {
+    // Every built-in tool, all your MCP servers, Chrome, no permission
+    // prompts, the whole home folder.
+    args.push('--dangerously-skip-permissions', '--add-dir', os.homedir(), '--chrome');
+  } else {
+    const allowed = [...cfg.allowedTools, `Bash(node ${paths.uploadHelper}:*)`];
+    // Built-in tools Claude may see at all; Bash is there only for the upload helper.
+    const builtins = [...new Set([...cfg.allowedTools.filter((t) => !t.startsWith('mcp__')).map((t) => t.replace(/\(.*$/, '')), 'Bash'])];
+    args.push(
+      // Deny anything not allowed below, even if your own Claude settings default
+      // to bypassing permissions (message content is untrusted).
+      '--permission-mode', 'dontAsk',
+      '--tools', builtins.join(','),
+      '--allowedTools', allowed.join(','),
+      '--add-dir', paths.media,
+    );
+  }
+  // Locked runs get only the Notion MCP: your other MCP servers slow startup.
   const mcpConfig = JSON.stringify({ mcpServers: { notion: { type: 'http', url: cfg.notionMcpUrl } } });
-  const args = [
-    '-p', prompt,
-    '--output-format', 'json',
-    // Deny anything not allowed below, even if your own Claude settings default
-    // to bypassing permissions (message content is untrusted).
-    '--permission-mode', 'dontAsk',
-    '--tools', builtins.join(','),
-    '--allowedTools', allowed.join(','),
-    // Only the Notion MCP: your other MCP servers slow startup and can keep
-    // the process alive after it has answered.
-    '--strict-mcp-config', '--mcp-config', mcpConfig,
-    '--add-dir', paths.media,
-  ];
+  if (!fullAccess) args.push('--strict-mcp-config', '--mcp-config', mcpConfig);
   if (cfg.model) args.push('--model', cfg.model);
+  // Real tasks on the Mac can take longer than filing a note.
+  const minutes = fullAccess ? Math.max(cfg.claudeTimeoutMinutes, cfg.fullAccessTimeoutMinutes || 30) : cfg.claudeTimeoutMinutes;
 
   return new Promise((resolve, reject) => {
     const child = spawn(cfg.claudeBin, args, { cwd: paths.agentDir, env: process.env, stdio: ['ignore', 'pipe', 'pipe'] });
     let out = '';
     let err = '';
-    child.stdout.on('data', (d) => (out += d));
-    child.stderr.on('data', (d) => (err += d));
+    let done = false;
     const timer = setTimeout(() => {
       child.kill('SIGTERM');
-      reject(new Error(`claude timed out after ${cfg.claudeTimeoutMinutes} min`));
-    }, cfg.claudeTimeoutMinutes * 60 * 1000);
-    child.on('error', (e) => {
+      settle(() => reject(new Error(`claude timed out after ${minutes} min`)));
+    }, minutes * 60 * 1000);
+    function settle(fn) {
+      if (done) return;
+      done = true;
       clearTimeout(timer);
-      reject(e);
-    });
-    child.on('close', (code) => {
-      clearTimeout(timer);
+      fn();
+    }
+    // The JSON result is the last thing claude prints. Some MCP servers keep
+    // the process alive after that, so act on the result as soon as it is
+    // complete and stop the process instead of waiting for it to exit.
+    function finish(code) {
       let envelope;
       try {
         envelope = JSON.parse(out);
       } catch {
-        return reject(new Error(`claude exited ${code} without JSON: ${(err || out).slice(0, 500)}`));
+        if (code === undefined) return; // not complete yet
+        return settle(() => reject(new Error(`claude exited ${code} without JSON: ${(err || out).slice(0, 500)}`)));
       }
-      if (envelope.is_error) return reject(new Error(`claude error: ${String(envelope.result).slice(0, 500)}`));
-      logger.info({ cost: envelope.total_cost_usd, turns: envelope.num_turns, ms: envelope.duration_ms }, 'claude finished');
-      resolve(parseResult(envelope.result));
+      settle(() => {
+        if (code === undefined) setTimeout(() => child.kill('SIGTERM'), 2000);
+        if (envelope.is_error) return reject(new Error(`claude error: ${String(envelope.result).slice(0, 500)}`));
+        logger.info({ cost: envelope.total_cost_usd, turns: envelope.num_turns, ms: envelope.duration_ms }, 'claude finished');
+        resolve(parseResult(envelope.result));
+      });
+    }
+    child.stdout.on('data', (d) => {
+      out += d;
+      if (out.trimEnd().endsWith('}')) finish();
     });
+    child.stderr.on('data', (d) => (err += d));
+    child.on('error', (e) => settle(() => reject(e)));
+    child.on('close', (code) => finish(code ?? -1));
   });
 }
 
