@@ -39,8 +39,10 @@ export function describe(msg) {
   if (!(type in MEDIA_KINDS) || MEDIA_KINDS[type] === null) return null;
   const node = content[type];
   const text = (node.caption || '').trim();
+  // A video sent "as a document" (full quality) is still a video.
+  const kind = type === 'documentMessage' && node.mimetype?.startsWith('video/') ? 'video' : MEDIA_KINDS[type].kind;
   return {
-    kind: MEDIA_KINDS[type].kind,
+    kind,
     text,
     url: text.match(URL_RE)?.[0] || null,
     mediaType: type,

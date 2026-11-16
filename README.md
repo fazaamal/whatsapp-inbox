@@ -3,7 +3,7 @@
 Message yourself on WhatsApp and it lands in Notion.
 
 Send anything to your own "Message yourself" chat: a thought, a link, a
-screenshot, a photo, a voice note, a file. A small bot on your Mac picks it up
+screenshot, a photo, a video, a voice note, a file. A small bot on your Mac picks it up
 and hands it to Claude Code, which files it as a page in the **WhatsApp Inbox**
 Notion database, sorted by project, and replies in the same chat with what it
 saved and a link to the page. If the message asks for something ("summarise
@@ -11,11 +11,12 @@ this", "what's this?", a question), Claude also does it and the reply is the ans
 
 ```
 WhatsApp self-chat ──► bot on your Mac (Baileys, linked device)
-                          │  downloads media, transcribes voice notes locally (whisper.cpp)
+                          │  downloads media, transcribes voice notes and videos locally (whisper.cpp),
+                          │  grabs still frames from videos (macOS AVFoundation)
                           ▼
                        claude -p  (headless Claude Code, like the GitHub Action)
                           │  reads agent/CLAUDE.md, files the page via the Notion MCP,
-                          │  uploads the image/audio, answers requests
+                          │  looks at images and video frames, uploads the media, answers requests
                           ▼
                        Notion: WhatsApp Inbox  ──► ✅ reaction + a 🤖 reply (what was saved, or the answer)
 ```
@@ -65,7 +66,7 @@ npm run setup
 
 `npm run setup` walks through six steps and is safe to re-run (it skips what's done):
 
-1. installs `whisper-cpp` with Homebrew if missing (voice notes are converted with macOS's built-in `afconvert`; `ffmpeg` is only a fallback)
+1. installs `whisper-cpp` with Homebrew if missing (voice notes are converted with macOS's built-in `afconvert`; `ffmpeg` is only a fallback). Videos need no extra install: the first one compiles a small frame grabber (`bin/video-frames.swift`) with the Xcode command line tools' `swiftc`
 2. downloads the speech-to-text model for voice notes (`ggml-small.bin`, ~466 MB,
    from Hugging Face) to `~/.whatsapp-inbox/models`
 3. checks Claude Code can reach Notion (if not, it prints the commands from step 4 above)
@@ -218,7 +219,7 @@ npm run service:uninstall                       # stop it and remove the service
 | Path | What |
 |---|---|
 | `~/.whatsapp-inbox/auth/` | WhatsApp login. Private; never commit. Delete it to unlink. |
-| `~/.whatsapp-inbox/media/` | Downloaded images, voice notes, files |
+| `~/.whatsapp-inbox/media/` | Downloaded images, videos (with their still frames in `*.frames/`), voice notes, files |
 | `~/.whatsapp-inbox/state.json` | Which messages are done or failed, plus the recent-messages memory |
 | `~/.whatsapp-inbox/logs/` | Bot logs |
 | `~/Library/LaunchAgents/com.fazasophian.whatsapp-inbox.plist` | The background service |

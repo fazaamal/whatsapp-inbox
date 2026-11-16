@@ -82,6 +82,7 @@ export function addHistory(item, result) {
     transcript: clip(item.transcript, 800),
     url: item.url || null,
     file: item.file || null,
+    frames: item.video?.frames?.map((f) => f.file) || null,
     title: result?.title || null,
     project: result?.project || null,
     pageUrl: result?.pageUrl || null,

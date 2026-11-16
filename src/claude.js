@@ -14,6 +14,7 @@ function describeEarlier(h) {
   if (h.transcript) parts.push(`transcript: ${JSON.stringify(h.transcript)}`);
   if (h.url) parts.push(`link: ${h.url}`);
   if (h.file) parts.push(`file: ${h.file}`);
+  if (h.frames?.length) parts.push(`video frames: ${h.frames.join(', ')}`);
   if (h.reply) parts.push(`you replied: ${JSON.stringify(h.reply)}`);
   return parts.join(' | ');
 }
@@ -37,6 +38,20 @@ export function buildPrompt(item, cfg, context = {}) {
       item.transcript
         ? `- Voice note transcript (automatic, may have mistakes):\n"""\n${item.transcript}\n"""`
         : '- Voice note: transcription unavailable; file it with the audio attached.',
+    );
+  }
+  if (item.kind === 'video') {
+    const v = item.video || {};
+    if (v.frames?.length) {
+      lines.push(`- Video: ${v.duration} s, ${v.width}x${v.height}. Still frames taken from it (Read each one to see what happens):`);
+      for (const f of v.frames) lines.push(`  - at ${f.at} s: ${f.file}`);
+    } else {
+      lines.push('- Video: no frames could be taken from it, so you can\'t see it; go by the caption and transcript.');
+    }
+    lines.push(
+      item.transcript
+        ? `- Speech in the video (automatic transcript, may have mistakes, or be noise if there's only music):\n"""\n${item.transcript}\n"""`
+        : '- Speech in the video: none, or it could not be transcribed.',
     );
   }
   if (item.replyToId) {

@@ -11,6 +11,7 @@
   "notionMcpUrl": "https://mcp.notion.com/mcp",
   "whisperModel": "~/.whatsapp-inbox/models/ggml-small.bin",
   "whisperLanguage": "auto",
+  "videoMaxFrames": 8,
   "historyItems": 8,
   "historyHours": 6,
   "replyPrefix": "🤖 ",
