@@ -39,6 +39,8 @@ Zamrud = online shop / products / TikTok Shop / FB ads. Zaman = email product
 and its infrastructure. BuildWithFaza = Faza's content / personal brand.
 Minaarah = Minaarah project. Masters = postgraduate research and thesis.
 Surau Al-Iman = surau and jamaah activities.
+Ideas = a standalone idea (a business, product or project idea of its own)
+that doesn't belong to any of the projects above.
 
 Page body:
 - The original text, verbatim, under "Original".

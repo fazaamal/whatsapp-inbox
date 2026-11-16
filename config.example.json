@@ -1,7 +1,7 @@
 {
   "notionDatabaseUrl": "https://app.notion.com/p/418abb8c2f0a81089ab1c4655f3fa0db",
   "notionDataSource": "collection://418abb8c-2f0a-81ee-834d-000b3cdae4c8",
-  "projects": ["Warq", "Zamrud", "Zaman", "BuildWithFaza", "Minaarah", "Masters", "Surau Al-Iman", "Personal", "Other"],
+  "projects": ["Warq", "Zamrud", "Zaman", "BuildWithFaza", "Minaarah", "Masters", "Surau Al-Iman", "Ideas", "Personal", "Other"],
   "timezone": "Asia/Kuala_Lumpur",
   "allowedTools": ["Read", "WebFetch", "WebSearch", "mcp__notion"],
   "model": "sonnet",

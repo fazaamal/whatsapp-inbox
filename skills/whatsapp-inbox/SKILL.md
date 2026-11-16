@@ -33,7 +33,7 @@ IDs here and in the bot's `config.example.json`.
 | Property | Type | Values / meaning |
 | --- | --- | --- |
 | Name | title | Short title the bot wrote |
-| Project | select | Warq · Zamrud · Zaman · BuildWithFaza · Minaarah · Masters · Surau Al-Iman · Personal · Other |
+| Project | select | Warq · Zamrud · Zaman · BuildWithFaza · Minaarah · Masters · Surau Al-Iman · Ideas · Personal · Other |
 | Type | select | Idea · Link · Image · Voice note · Video · File · Request |
 | Status | select | New (not looked at) · Reviewed (seen, keep) · Done (acted on) |
 | Summary | text | One or two sentences |

@@ -121,7 +121,7 @@ else, ask Claude Code (with Notion connected) to create it:
 
 > Create a Notion database called "WhatsApp Inbox" with: Name (title), Project
 > (select: Warq, Zamrud, Zaman, BuildWithFaza, Minaarah, Masters, Surau Al-Iman,
-> Personal, Other), Type (select: Idea, Link, Image, Voice note, Video, File,
+> Ideas, Personal, Other), Type (select: Idea, Link, Image, Voice note, Video, File,
 > Request), Status (select: New, Reviewed, Done), Summary (text), Link (url),
 > Tags (multi-select), Received (date), Message ID (text). Give me its URL and
 > its collection:// data source URL.
