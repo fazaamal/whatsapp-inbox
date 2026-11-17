@@ -7,6 +7,8 @@
 //   npm run simulate -- --file note.ogg --kind voice
 //   add --with-history to use (and add to) the recent-messages memory,
 //   and --reply-to <message id> to act as a swipe-reply to that message
+//   --group "Name" [--sender "Ali"] [--reply group|self|none] [--project P]
+//   to act as a message in a group (nothing is sent to WhatsApp)
 import fs from 'node:fs';
 import path from 'node:path';
 import pino from 'pino';
@@ -24,6 +26,12 @@ const id = `SIM-${Date.now()}`;
 const text = arg('text') || '';
 const url = text.match(/https?:\/\/[^\s<>"']+/i)?.[0] || null;
 const item = { id, text, url, receivedIso: new Date().toISOString(), kind: arg('kind'), replyToId: arg('reply-to') };
+if (arg('group')) {
+  item.group = { name: arg('group'), project: arg('project'), reply: arg('reply') || 'group' };
+  item.chat = `SIM-group:${arg('group')}`;
+  item.sender = arg('sender') || 'Someone';
+  item.fromFaza = item.sender === 'Faza';
+}
 
 const source = arg('file');
 if (source) {

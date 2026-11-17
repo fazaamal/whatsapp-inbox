@@ -17,5 +17,6 @@
   "historyItems": 8,
   "historyHours": 6,
   "replyPrefix": "🤖 ",
-  "reactions": { "working": "⏳", "saved": "✅", "failed": "❌" }
+  "reactions": { "working": "⏳", "saved": "✅", "failed": "❌" },
+  "groups": []
 }

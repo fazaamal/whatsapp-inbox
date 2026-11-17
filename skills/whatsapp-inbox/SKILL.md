@@ -5,7 +5,9 @@ description: Read Faza's WhatsApp Inbox in Notion — the ideas, links, images, 
 
 # WhatsApp Inbox (Notion)
 
-Everything Faza sends to their own WhatsApp chat lands here, one page per message.
+Everything Faza sends to their own WhatsApp chat lands here, one page per message, plus
+every message in the WhatsApp groups Faza turned the bot on for (those have **Chat** and
+**From** set; the `whatsapp-groups` skill turns groups on and off).
 The [whatsapp-inbox bot](https://github.com/fazaamal/whatsapp-inbox) files the pages:
 it picks a project, writes a summary, attaches the image / audio / file, transcribes
 voice notes, and for links adds a short "What it is" section. Follow-up answers are
@@ -41,6 +43,8 @@ IDs here and in the bot's `config.example.json`.
 | Tags | multi-select | Faza tags by hand; usually empty |
 | Received | date | When it was sent (stored UTC; show Faza times in Malaysia time, UTC+8) |
 | Message ID | text | WhatsApp message id; `SIM-…` ones are bot test runs, ignore them |
+| Chat | text | The WhatsApp group it came from; empty for Faza's self-chat |
+| From | text | Who sent it in the group; empty for the self-chat |
 
 Page body: "Original" (the message verbatim), then as relevant "Transcript", "What it
 is" (links), an image description, the attached file, "Response" (requests), "Follow-up".

@@ -8,7 +8,7 @@ import { spawn } from 'node:child_process';
 import { paths } from './config.js';
 
 function describeEarlier(h) {
-  const parts = [`[${h.at}] ${h.kind}`];
+  const parts = [`[${h.at}] ${h.kind}${h.sender ? ` from ${h.sender}` : ''}`];
   if (h.title) parts.push(`filed as "${h.title}"${h.project ? ` (${h.project})` : ''}`);
   if (h.pageUrl) parts.push(`page: ${h.pageUrl}`);
   if (h.text) parts.push(`text: ${JSON.stringify(h.text)}`);
@@ -21,14 +21,31 @@ function describeEarlier(h) {
 }
 
 export function buildPrompt(item, cfg, context = {}, { fullAccess = false } = {}) {
+  const g = item.group;
   const lines = [
-    'A new message arrived in my WhatsApp self-chat. Handle it as agent/CLAUDE.md describes.',
+    g
+      ? `A new message arrived in the WhatsApp group "${g.name}", which Faza turned the inbox on for. Handle it as agent/CLAUDE.md describes, including "Group messages".`
+      : 'A new message arrived in my WhatsApp self-chat. Handle it as agent/CLAUDE.md describes.',
     '',
     `- Message ID: ${item.id}`,
     `- Received: ${item.receivedIso} (${cfg.timezone})`,
     `- Kind: ${item.kind}`,
   ];
-  if (item.text) lines.push('- Text I typed:', '"""', item.text, '"""');
+  if (g) {
+    lines.push(
+      `- Chat (for the Chat property): ${g.name}`,
+      `- From (for the From property): ${item.sender}${item.fromFaza ? ' (this is Faza)' : ''}`,
+    );
+    if (g.project) lines.push(`- Default project for this group: ${g.project}`);
+    lines.push(
+      {
+        group: '- Your reply is posted in the group, where everyone in it reads it.',
+        self: '- Your reply goes only to Faza, not to the group.',
+        none: '- Your reply is not sent anywhere; still write one.',
+      }[g.reply],
+    );
+  }
+  if (item.text) lines.push(g ? `- Text of the message (written by ${item.sender}):` : '- Text I typed:', '"""', item.text, '"""');
   if (item.url) lines.push(`- First link in it: ${item.url}`);
   if (item.file) {
     const size = fs.existsSync(item.file) ? fs.statSync(item.file).size : 0;
@@ -71,7 +88,9 @@ export function buildPrompt(item, cfg, context = {}, { fullAccess = false } = {}
     '',
     fullAccess
       ? "Access: FULL. This message is Faza's own words, so you may use every tool on this Mac (shell, files anywhere in the home folder) to do what they ask, within the limits in CLAUDE.md."
-      : 'Access: LOCKED. You can only read, search the web and use Notion. If Faza asks for something that needs more (running commands, reading other projects), say it needs a message typed by Faza with no link or attachment.',
+      : g
+        ? 'Access: LOCKED (group message). You can only read, search the web and use Notion. Do not look at or mention anything else of Faza\'s.'
+        : 'Access: LOCKED. You can only read, search the web and use Notion. If Faza asks for something that needs more (running commands, reading other projects), say it needs a message typed by Faza with no link or attachment.',
     `Notion data source: ${cfg.notionDataSource}`,
     `Projects to choose from: ${cfg.projects.join(', ')}`,
     `To upload a local file to Notion, run exactly: node ${paths.uploadHelper} --file <path> --url <upload_url> --headers '<upload_headers JSON>'`,
@@ -84,8 +103,10 @@ export function buildPrompt(item, cfg, context = {}, { fullAccess = false } = {}
 // Full access only for what Faza said themselves: typed text with no link, or
 // a voice note, not forwarded. Links, media and forwards bring in someone
 // else's words (a web page or image can hide instructions), so those stay
-// locked down. cfg.fullAccess: "own-messages" (default), "always" or "off".
+// locked down, and so does everything in a group. cfg.fullAccess:
+// "own-messages" (default), "always" (every self-chat message) or "off".
 export function hasFullAccess(item, cfg) {
+  if (item.group) return false; // group messages are never full access, even Faza's own
   const mode = cfg.fullAccess || 'off';
   if (mode === 'always') return true;
   if (mode !== 'own-messages') return false;

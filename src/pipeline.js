@@ -18,8 +18,8 @@ export async function processItem(item, cfg, logger, { useHistory = true } = {})
   }
   const context = useHistory
     ? {
-        recent: recentHistory({ maxItems: cfg.historyItems, windowHours: cfg.historyHours, excludeId: item.id }),
-        repliedTo: item.replyToId ? findInHistory(item.replyToId) : null,
+        recent: recentHistory({ maxItems: cfg.historyItems, windowHours: cfg.historyHours, excludeId: item.id, chat: item.chat || 'self' }),
+        repliedTo: item.replyToId ? findInHistory(item.replyToId, item.chat || 'self') : null,
       }
     : {};
   const fullAccess = hasFullAccess(item, cfg);

@@ -68,7 +68,8 @@ export function rememberSent(id) {
 export const isSentByBot = (id) => loadState().sentByBot.includes(id);
 
 // A short memory of recent messages, so a follow-up like "summarise that"
-// knows what "that" is. Each Claude run is otherwise a fresh session.
+// knows what "that" is. Each Claude run is otherwise a fresh session. Kept
+// per chat: a group never sees your self-chat's messages, or another group's.
 const clip = (s, n) => (s && s.length > n ? s.slice(0, n) + '…' : s || null);
 
 export function addHistory(item, result) {
@@ -76,6 +77,8 @@ export function addHistory(item, result) {
   s.history = s.history.filter((h) => h.id !== item.id);
   s.history.push({
     id: item.id,
+    chat: item.chat || 'self',
+    sender: item.sender || null,
     at: item.receivedIso,
     kind: item.kind,
     text: clip(item.text, 500),
@@ -88,15 +91,15 @@ export function addHistory(item, result) {
     pageUrl: result?.pageUrl || null,
     reply: clip(result?.reply, 500),
   });
-  if (s.history.length > 50) s.history = s.history.slice(-50);
+  if (s.history.length > 200) s.history = s.history.slice(-200);
   save();
 }
 
-export function recentHistory({ maxItems, windowHours, excludeId }) {
+export function recentHistory({ maxItems, windowHours, excludeId, chat = 'self' }) {
   const since = Date.now() - windowHours * 3_600_000;
   return loadState()
-    .history.filter((h) => h.id !== excludeId && Date.parse(h.at) >= since)
+    .history.filter((h) => h.id !== excludeId && (h.chat || 'self') === chat && Date.parse(h.at) >= since)
     .slice(-maxItems);
 }
 
-export const findInHistory = (id) => loadState().history.find((h) => h.id === id) || null;
+export const findInHistory = (id, chat = 'self') => loadState().history.find((h) => h.id === id && (h.chat || 'self') === chat) || null;

@@ -15,6 +15,7 @@ export const paths = {
   logs: path.join(DATA_DIR, 'logs'),
   state: path.join(DATA_DIR, 'state.json'),
   config: path.join(DATA_DIR, 'config.json'),
+  groups: path.join(DATA_DIR, 'groups.json'),
   agentDir: path.join(REPO_DIR, 'agent'),
   uploadHelper: path.join(REPO_DIR, 'bin', 'notion-upload.mjs'),
 };

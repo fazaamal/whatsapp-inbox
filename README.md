@@ -21,14 +21,15 @@ WhatsApp self-chat ──► bot on your Mac (Baileys, linked device)
                        Notion: WhatsApp Inbox  ──► ✅ reaction + a 🤖 reply (what was saved, or the answer)
 ```
 
-Only your own self-chat is read. Every other chat is ignored.
+Only your own self-chat is read, plus any [groups you turn it on for](#groups).
+Every other chat is ignored.
 
 There are two parts, and you can install either:
 
 | Part | What it does | Install |
 |---|---|---|
 | **The bot** | Watches your WhatsApp self-chat and files messages in Notion | [Full install](#full-install-bot--skill), once per Mac that should run it |
-| **The skill** | Lets any Claude Code session read the inbox ("what did I dump about Warq?") | Included in the full install, or [skill only](#skill-only) on any other Mac |
+| **The skills** | `whatsapp-inbox` lets any Claude Code session read the inbox ("what did I dump about Warq?"); `whatsapp-groups` turns the bot on for a group by name | Included in the full install, or [skill only](#skill-only) on any other Mac |
 
 Run the bot on **one** Mac only. An always-on one (like a Mac mini) is best,
 because the bot only works while that Mac is awake.
@@ -177,6 +178,38 @@ filed as their own page *and* added to the original page under "Follow-up".
 The Mac has to be awake for the bot to work. Anything you send while it's asleep
 or offline is picked up when it wakes.
 
+## Groups
+
+The bot can also work in WhatsApp groups you choose. In a group it handles every
+message from anyone the same way: files a page (with the group in **Chat** and
+the sender in **From**), reacts ⏳/✅ and replies.
+
+```bash
+npm run groups -- add "PV8 Futsal"                     # turn it on (part of the name is enough)
+npm run groups -- add "Zamrud Operations" --project Zamrud --reply self
+npm run groups -- set "PV8 Futsal" --reply none
+npm run groups -- remove "PV8 Futsal"
+npm run groups                                         # which groups it's on for
+npm run groups -- list futsal                          # find a group by name
+```
+
+Or just ask Claude Code: "make the inbox bot work in the PV8 Futsal group" (the
+`whatsapp-groups` skill runs the command). Changes apply within seconds, no restart.
+Only messages sent after a group is turned on are filed.
+
+`--reply` sets where answers go: `group` (default, in the group, posted from your
+number), `self` (only to your self-chat, tagged with the group and sender) or
+`none` (just files). Failures always go to your self-chat; `/retry` and `/status`
+only work there.
+
+Group messages are always **locked down**, your own included: read, web, Notion
+only. Each group's follow-up memory holds that group's messages only, and replies
+in a group never mention your other inbox items or projects, or link to Notion.
+
+The bot keeps the list of every group you're in at `~/.whatsapp-inbox/groups.json`
+(refreshed when it connects, or with `npm run groups -- refresh`); the groups it's
+on for are under `"groups"` in `~/.whatsapp-inbox/config.json`.
+
 ## Reading the inbox from Claude Code
 
 The repo includes a Claude skill, [`skills/whatsapp-inbox`](skills/whatsapp-inbox/SKILL.md)
@@ -217,14 +250,15 @@ npm run service:uninstall                       # stop it and remove the service
   Code chats today?" or "what tabs do I have open?" just work. CLAUDE.md still
   tells it to only do irreversible or outward-facing things (deleting, pushing,
   sending, paying) when your message names that exact action.
-- **Locked down for everything else.** Links, images, videos, files and forwarded
-  messages carry someone else's words, which can hide instructions. Those runs
+- **Locked down for everything else.** Links, images, videos, files, forwarded
+  messages and anything in a group carry someone else's words, which can hide instructions. Those runs
   may only read files, search/fetch the web, use the Notion MCP, and run
   `bin/notion-upload.mjs` (which only uploads files from the bot's media folder
   to Notion). Add tools in `allowedTools` to widen this.
 - Change it with `fullAccess` in `~/.whatsapp-inbox/config.json`:
-  `"own-messages"` (default), `"always"` (every message, links and media
-  included: anything a web page says could run on your Mac), or `"off"`.
+  `"own-messages"` (default), `"always"` (every self-chat message, links and media
+  included: anything a web page says could run on your Mac), or `"off"`. Groups are
+  locked down whatever this says.
 
 ## Where things live
 
@@ -241,5 +275,8 @@ npm run service:uninstall                       # stop it and remove the service
 - [Baileys](https://github.com/WhiskeySockets/Baileys) is an unofficial WhatsApp
   Web client. Reading your own chat as a linked device is low risk, but it isn't
   an official API.
+- In a group with `--reply group`, the bot's replies come from your own number.
+  A bot that answers every message in a busy group is the kind of thing WhatsApp
+  flags; use `--reply self` for busy groups.
 - Each message is one headless Claude run (Sonnet by default), which counts
   toward your Claude plan's usage.
